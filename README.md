@@ -10,6 +10,8 @@ The primary objective of this project is to demonstrate how to develop LLMs that
 
 To keep things simple, we started with [karpathy/nanoGPT](https://github.com/karpathy/nanoGPT) repository, and simplified and adapted the model and the training loop to achieve the objectives outlined above.
 
+For pre-training, the GPT2 model can be initialized from scratch, or loaded from the following pre-trained Hugging Face models: `gpt2`, `gpt2-medium`, `gpt2-large`,  and `gpt2-xl`. To load from a pre-trained Hugging Face model, use the command line argument `--hf_model=model-name`.  Command line arguments to the training script are automatically parsed and mapped to the training configuration. 
+
 ## Step-by-step Tutorial
 
 Below we provide a step-by-step tutorial on how to debug, and pre-train the model using [AWS Deep Learning Desktop](https://github.com/aws-samples/aws-deep-learning-ami-ubuntu-dcv-desktop). Any other equivalent or better Nvidia GPU machine can be used for walking through the tutorial, as well.
