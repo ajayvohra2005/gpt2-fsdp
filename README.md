@@ -4,8 +4,8 @@
 The primary objective of this project is to demonstrate how to develop LLMs that can run and scale on PyTorch/CUDA, and PyTorch/XLA, without modifications to the model. The secondary objectives of this project are as follows:
 
 1. Provide an easy to understand LLM model for learning GPT2 model architecture details
-2. Demonstrate use of FSDP and activation checkpointing to scale LLM training by wrapping approproate transformer layer class
-3. Provide an easy to understand FSDP training loop that uses Tensorboard for training metrics
+2. Demonstrate use of FSDP and activation checkpointing to scale LLM training by wrapping appropriate transformer layer class
+3. Provide an easy to understand FSDP training loop that uses TensorBoard for training metrics
 4. Demonstrate how to debug LLM code in Visual Studio Code for CUDA/XLA using Docker extensions
 
 To keep things simple, we started with [karpathy/nanoGPT](https://github.com/karpathy/nanoGPT) repository, and simplified and adapted the model and the training loop to achieve the objectives outlined above.
@@ -20,7 +20,7 @@ Follow the instructions at this [repository](https://github.com/aws-samples/aws-
 
 ### Development Setup
 
-Clone this repository under the home directory on the launched desktop, and `cd` into the cloned repository . Activate `pytorch` conda enviromnet:
+Clone this repository under the home directory on the launched desktop, and `cd` into the cloned repository . Activate `pytorch` conda environment:
 
     conda activate pytorch
 
@@ -37,7 +37,7 @@ Convert Hugging Face `openwebtext` dataset into a dataset we can use with GPT2 b
 
 ### Debug in Visual Studio Code
 
-Launch Visutal Studio Code and open this repository in Code, and select `pytorch` conda enviroment Python interpreter (`Use Shift + CMD + P > Python: Select Interpreter`). 
+Launch pre-installed Visual Studio Code and open this repository in Code, and select `pytorch` conda environment Python interpreter (`Use Shift + CMD + P > Python: Select Interpreter`). 
 
 There are three options for debugging the current file `train_fsdp.py` in Code:
 
@@ -50,7 +50,7 @@ There are three options for debugging the current file `train_fsdp.py` in Code:
 
 ### Distributed FSDP Training using CUDA on Desktop
 
-To run distirbuted FSDP training on CUDA on the dekstop, execute:
+To run distributed FSDP training on CUDA on the desktop, execute:
 
     ./run_cuda.sh 1>run_cuda.out 2>&1 &
 
