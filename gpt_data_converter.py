@@ -34,13 +34,13 @@ class GptDataConverter:
 
     def __call__(self) -> None:
         
-        dataset = load_dataset(self.__hf_dataset, num_proc=self.__num_procs)
+        dataset = load_dataset(self.__hf_dataset, num_proc=self.__num_procs, trust_remote_code=True)
 
         # split train dataset into train and validation
         splits = dataset["train"].train_test_split(test_size=self.__test_size, seed=self.__seed, shuffle=True)
         splits['val'] = splits.pop('test')
 
-        # toeknizer map
+        # tokenizer map
         tokenized_dataset = splits.map(
             process,
             remove_columns=['text'],
