@@ -1,0 +1,71 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--dataset_dir=data",
+                "--device_type=cuda",
+                "--log_dir=logs",
+                "--batch_size=12",
+                "--checkpoint_dir=checkpoints",
+                "--hf_model=gpt2"
+            ],
+            "env": {}
+        },
+        {
+            "name": "Docker: Python Debug XLA",
+            "type": "docker",
+            "request": "launch",
+            "preLaunchTask": "docker-run-xla: debug",
+            "python": {
+                "pathMappings": [
+                    {
+                        "localRoot": "${workspaceFolder}",
+                        "remoteRoot": "/app"
+                    }
+                ],
+                "env": {}, // set environment in tasks.json
+                "projectType": "general",
+                "args": [
+                    "--dataset_dir=data",
+                    "--device_type=xla",
+                    "--log_dir=logs",
+                    "--checkpoint_dir=checkpoints",
+                    "--batch_size=8",
+                    "--cache_dir=cache",
+                    "--hf_model=gpt2"
+                ]
+            }
+        },
+        {
+            "name": "Docker: Python Debug CUDA",
+            "type": "docker",
+            "request": "launch",
+            "preLaunchTask": "docker-run-cuda: debug",
+            "python": {
+                "pathMappings": [
+                    {
+                        "localRoot": "${workspaceFolder}",
+                        "remoteRoot": "/app"
+                    }
+                ],
+                "env": {}, // set nvironment in tasks.json
+                "projectType": "general",
+                "args": [
+                    "--dataset_dir=data",
+                    "--device_type=cuda",
+                    "--log_dir=logs",
+                    "--checkpoint_dir=checkpoints",
+                    "--batch_size=12",
+                    "--hf_model=gpt2"
+                ]
+            }
+        }
+    ]
+}
