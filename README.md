@@ -39,7 +39,7 @@ Convert Hugging Face `openwebtext` dataset into a dataset we can use with GPT2 b
 
 ### Debug in Visual Studio Code
 
-Launch pre-installed Visual Studio Code and open this repository in Code, and select `pytorch` conda environment Python interpreter (`Use Shift + CMD + P > Python: Select Interpreter`). 
+Launch pre-installed Visual Studio Code and open this repository in Code. Install [Python](https://code.visualstudio.com/docs/languages/python) and [Docker](https://code.visualstudio.com/docs/containers/overview) extensions for Visual Studio Code. Select `pytorch` conda environment Python interpreter (`Use Shift + CMD + P > Python: Select Interpreter`). 
 
 There are three options for debugging the current file `train_fsdp.py` in Code:
 
