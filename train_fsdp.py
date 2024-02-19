@@ -132,7 +132,7 @@ class TrainFSDP:
         
         with torch.no_grad():
             fsdp_loss[0] = torch.add(fsdp_loss[0], loss)
-            fsdp_loss[1] = torch.add(fsdp_loss[1], len(X))
+            fsdp_loss[1] = torch.add(fsdp_loss[1], self.cfg.batch_size)
 
 
     def __train_epoch(self, model:GPT2, 
@@ -187,11 +187,15 @@ class TrainFSDP:
                 X, Y = X.to(device=device), Y.to(device=device)
 
                 _, loss = model(X, Y)
+                
                 fsdp_loss[0] = torch.add(fsdp_loss[0], loss)
-                fsdp_loss[1] = torch.add(fsdp_loss[1], len(X))
+                fsdp_loss[1] = torch.add(fsdp_loss[1], self.cfg.batch_size)
 
                 if self.cfg.rank==0:
                     inner_pbar.update(1)
+
+                if self.cfg.device_type == "xla":
+                    xm.mark_step()
 
         if self.cfg.fsdp:
             if self.cfg.device_type == "xla":
@@ -314,7 +318,7 @@ class TrainFSDP:
             val_sampler=DistributedSampler(val_dataset, 
                                             num_replicas=self.cfg.world_size, 
                                             rank=self.cfg.rank, shuffle=False, 
-                                            seed=0, drop_last=False)
+                                            seed=0, drop_last=True)
         else:
             train_sampler = RandomSampler(train_dataset)
             val_sampler = RandomSampler(val_dataset)
