@@ -132,7 +132,7 @@ class TrainFSDP:
         
         with torch.no_grad():
             fsdp_loss[0] = torch.add(fsdp_loss[0], loss)
-            fsdp_loss[1] = torch.add(fsdp_loss[1], self.cfg.batch_size)
+            fsdp_loss[1] = torch.add(fsdp_loss[1], len(X))
 
 
     def __train_epoch(self, model:GPT2, 
@@ -177,8 +177,7 @@ class TrainFSDP:
     def __validation(self, model:GPT2, val_loader:DataLoader, device:torch.device):
         model.eval()
     
-        local_rank = self.cfg.local_rank
-        fsdp_loss = torch.zeros(2).to(local_rank)
+        fsdp_loss = torch.zeros(2).to(device=device)
         if self.cfg.rank == 0:
             inner_pbar = tqdm.tqdm(
                 range(len(val_loader)), colour="green", desc="Validation Epoch"
@@ -188,8 +187,8 @@ class TrainFSDP:
                 X, Y = X.to(device=device), Y.to(device=device)
 
                 _, loss = model(X, Y)
-                fsdp_loss[0] += loss  # sum up batch loss
-                fsdp_loss[1] += self.cfg.batch_size
+                fsdp_loss[0] = torch.add(fsdp_loss[0], loss)
+                fsdp_loss[1] = torch.add(fsdp_loss[1], len(X))
 
                 if self.cfg.rank==0:
                     inner_pbar.update(1)
