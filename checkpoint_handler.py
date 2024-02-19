@@ -2,7 +2,8 @@ import os
 import torch
 
 try:
-    import torch_xla.core.xla_model as xm
+    from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP
+    import torch_xla.utils.serialization as xser
 except ImportError:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from torch.distributed.fsdp import (
@@ -88,11 +89,23 @@ class CheckpointHandler:
             state_dict = {
                 'model': model.state_dict(),
                 'optimizer': optimizer.state_dict(),
+                'shard_metadata': model.get_shard_metadata(),
                 "epoch": epoch
             }
-            xm.save(state_dict, self.__chkpt_path, master_only=False)
+            xser.save(state_dict, self.__chkpt_path, master_only=False)
         except Exception as e:
             logger.warning(f"save chkpt error: {e}")
+
+    def __load_fsdp_xla_checkpoint(self, model, optimizer):
+        try:
+            state_dict = xser.load(self.__chkpt_path)
+            model.load_state_dict(state_dict['model'])
+            optimizer.load_state_dict(state_dict['optimizer'])
+            epoch = state_dict['epoch'] + 1
+        except Exception as e:
+            logger.warning(f"load chkpt error: {e}")
+
+        return epoch
 
     def save(self, model, optimizer, epoch):
         if self.cfg.fsdp:
@@ -109,6 +122,9 @@ class CheckpointHandler:
             return 1
         
         if self.cfg.fsdp:
-            return self.__load_fsdp_checkpoint(model, optimizer)
+            if self.cfg.device_type == "xla":
+                return self.__load_fsdp_xla_checkpoint(model, optimizer)
+            else:
+                return self.__load_fsdp_checkpoint(model, optimizer)
         else:
             return self.__load_checkpoint(model, optimizer)

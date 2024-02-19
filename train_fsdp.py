@@ -41,9 +41,7 @@ from model import GPT2TransformerBlock
 
 try:
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.parallel_loader as pl
     import torch_xla.distributed.xla_backend
-    import torch_xla.distributed.xla_multiprocessing as xmp
     import torch_xla.runtime as xr
     from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP
     from torch_xla.distributed.fsdp import checkpoint_module
@@ -283,6 +281,12 @@ class TrainFSDP:
         if self.cfg.device_type == 'xla':
             device = xm.xla_device()
             bf16_supported = bool(os.getenv('XLA_USE_BF16', False))
+
+            xla_rank = xm.get_ordinal()
+            assert self.cfg.rank == xla_rank, f"Rank {self.cfg.rank} vs. {xla_rank}"
+
+            xla_world_size = xm.xrt_world_size()
+            assert self.cfg.world_size == xla_world_size, f"World size {self.cfg.world_size} vs. {xla_world_size}"
         elif self.cfg.device_type == 'cuda':
             device = torch.device(f"cuda:{self.cfg.local_rank}")
             bf16_supported = torch.cuda.is_bf16_supported()
@@ -299,8 +303,10 @@ class TrainFSDP:
 
         if self.cfg.fsdp:
             if self.cfg.device_type == "xla":
+                logger.info(f"init process group using init method xla://")
                 dist.init_process_group('xla', init_method='xla://')
             else:
+                logger.info(f"init process group using backend: '{self.cfg.dist_backend}'")
                 dist.init_process_group(self.cfg.dist_backend)
 
         device, bf16_supported = self.__get_device()
@@ -394,9 +400,10 @@ class TrainFSDP:
             self.__summary_writer.close()
 
         if self.cfg.fsdp:
+            logger.info(f"Rank {self.cfg.rank}: barrier")
             dist.barrier()
+            logger.info(f"Rank {self.cfg.rank}: destroy_process_group")
             dist.destroy_process_group()
-
 
 if __name__ == "__main__":
     cfg = TrainConfig()
@@ -406,4 +413,4 @@ if __name__ == "__main__":
     logger.info(cfg)
     logger.info(f"Tokens per iteration: {cfg.tokens_per_iter}")
     train_fsdp()
-
+    logger.info(f"Rank {cfg.rank}: done.")
