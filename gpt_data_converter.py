@@ -78,7 +78,7 @@ if __name__ == "__main__":
     parser.add_argument('--test-size', help="Test split proportion > 0.0 and < 1.0", 
                         type=float, default=0.0005)
     parser.add_argument('--num-proc', help="Number of processes for Hugging Face dataset download", 
-                        type=int, default=8)
+                        type=int, default=1)
 
     args, _ = parser.parse_known_args()
 
