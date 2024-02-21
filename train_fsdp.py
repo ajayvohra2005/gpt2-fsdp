@@ -282,13 +282,15 @@ class TrainFSDP:
             device = xm.xla_device()
             bf16_supported = bool(os.getenv('XLA_USE_BF16', False))
 
-            xla_rank = xm.get_ordinal()
-            assert self.cfg.rank == xla_rank, f"Rank {self.cfg.rank} vs. {xla_rank}"
+            self.cfg.rank = xm.get_ordinal()
+            self.cfg.world_size = xm.xrt_world_size()
 
-            xla_world_size = xm.xrt_world_size()
-            assert self.cfg.world_size == xla_world_size, f"World size {self.cfg.world_size} vs. {xla_world_size}"
+            logger.info(f"XLA rank: {self.cfg.rank}, world_size: {self.cfg.world_size}, device: {device}")
+            
         elif self.cfg.device_type == 'cuda':
             device = torch.device(f"cuda:{self.cfg.local_rank}")
+            logger.info(f"CUDA rank: {self.cfg.rank}, world_size: {self.cfg.world_size}, device: {device}")
+
             bf16_supported = torch.cuda.is_bf16_supported()
             torch.cuda.set_device(device)
             torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
