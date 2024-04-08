@@ -90,7 +90,10 @@ class TrainFSDP:
         if self.cfg.device_type == "xla":
             compiler_cache_path = self.cfg.cache_dir
             os.makedirs(compiler_cache_path, exist_ok=True)
-            xr.initialize_cache(compiler_cache_path, readonly=False)
+            try:
+                xr.initialize_cache(compiler_cache_path, readonly=False)
+            except AttributeError as e:
+                logger.warning(str(e))
 
     def __get_policies(self, wrap_cls:torch.nn.Module, bf16_supported:bool=False):
         mixed_precision_policy = None
@@ -280,7 +283,7 @@ class TrainFSDP:
         
         if self.cfg.device_type == 'xla':
             device = xm.xla_device()
-            bf16_supported = bool(os.getenv('XLA_USE_BF16', False))
+            bf16_supported = bool(int(os.getenv('XLA_USE_BF16', 0)))
 
             self.cfg.rank = xm.get_ordinal()
             self.cfg.world_size = xm.xrt_world_size()
