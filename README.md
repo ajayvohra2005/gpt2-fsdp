@@ -31,7 +31,7 @@ Clone this repository under the home directory on the launched desktop, and `cd`
 Install `tiktoken==0.5.2` in your `pytorch` conda environment:
 
     pip3 install tiktoken==0.5.2
-    pip3 install -r requirments.txt
+    pip3 install -r requirements.txt
 
 Convert Hugging Face `openwebtext` dataset into a dataset we can use with GPT2 by running:
 
