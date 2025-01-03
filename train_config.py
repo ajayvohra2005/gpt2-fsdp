@@ -4,9 +4,10 @@
 
 from dataclasses import dataclass
 import math
+from typing import Optional
+from device_utils import set_manual_seed
 from torch.distributed import is_nccl_available, is_gloo_available
 from torch.distributed.fsdp import ShardingStrategy
-from torch import manual_seed
 import os
 import pickle
 from logging_handler import get_logger
@@ -24,7 +25,7 @@ class TrainConfig:
     max_dataset_len: int = math.inf
     
     # Hugging Face pre-trained model model
-    hf_model: str = None
+    hf_model: Optional[str] = None
 
     # logs
     log_dir: str = "logs"
@@ -76,8 +77,6 @@ class TrainConfig:
         assert self.dropout >= 0.0 and self.dropout < 1.0
         assert self.hf_model is None or \
             self.hf_model in {'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl'}
-
-        manual_seed(self.seed)
         
         self.rank = int(os.getenv('RANK', 0))
         self.local_rank = int(os.getenv('LOCAL_RANK', 0))
@@ -86,9 +85,9 @@ class TrainConfig:
         self.master_process = self.rank == 0
 
         self.seed = 42 + self.rank
-        self.tokens_per_iter = self.world_size * self.batch_size * self.block_size
+        set_manual_seed(self.seed)
 
-        self.dist_backend = 'nccl' if is_nccl_available() else "gloo" if is_gloo_available() else None
+        self.tokens_per_iter = self.world_size * self.batch_size * self.block_size
 
         self.data_dir = os.path.join(self.dataset_dir, self.dataset)
         self.train_data = os.path.join(self.data_dir, "train.bin")

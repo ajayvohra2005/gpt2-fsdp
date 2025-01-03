@@ -192,6 +192,9 @@ class GPT2(nn.Module):
     @classmethod
     def from_hf_model(self, hf_model:str):
       
+        from huggingface_hub import snapshot_download
+        snapshot_download(repo_id=hf_model)
+
         from transformers import GPT2LMHeadModel
         logger.info("loading weights from pretrained gpt: %s" % hf_model)
 

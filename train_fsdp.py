@@ -298,15 +298,11 @@ class TrainFSDP:
     def __call__(self):
 
         if self.cfg.fsdp:
-            world_size = int(os.getenv("WORLD_SIZE", 1))
-            rank = int(os.getenv("RANK", 0))
-            self.__init_distributed(world_size, rank)
-            self.cfg.world_size = world_size
-            self.cfg.rank = rank
+            self.__init_distributed(self.cfg.world_size, self.cfg.rank)
 
             if xr:
-                assert world_size == xr.world_size(), f"{world_size} != {xr.world_size()} "
-                assert rank == xr.global_ordinal(), f"{rank} != {xr.global_ordinal()}"
+                assert self.cfg.world_size == xr.world_size(), f"{self.cfg.world_size} != {xr.world_size()} "
+                assert self.cfg.rank == xr.global_ordinal(), f"{self.cfg.rank} != {xr.global_ordinal()}"
 
         device = get_current_device()
         logger.info(f"current device: {device}")
