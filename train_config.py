@@ -5,8 +5,6 @@
 from dataclasses import dataclass
 import math
 from typing import Optional
-from device_utils import set_manual_seed
-from torch.distributed import is_nccl_available, is_gloo_available
 from torch.distributed.fsdp import ShardingStrategy
 import os
 import pickle
@@ -85,7 +83,6 @@ class TrainConfig:
         self.master_process = self.rank == 0
 
         self.seed = 42 + self.rank
-        set_manual_seed(self.seed)
 
         self.tokens_per_iter = self.world_size * self.batch_size * self.block_size
 

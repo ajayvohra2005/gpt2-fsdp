@@ -1,0 +1,1 @@
+docker run -t -d -v /home/ubuntu/gpt2-fsdp:/app --shm-size=16g --net=host --gpus all docker.io/library/gp2-fsdp-cuda:latest  sleep infinity

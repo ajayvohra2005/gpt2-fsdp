@@ -35,11 +35,14 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data.distributed import DistributedSampler
 from torch.utils.data import RandomSampler, DataLoader
 
-from checkpoint_handler import CheckpointHandler
-
-from model import GPT2TransformerBlock
-
-from torch.utils.tensorboard import SummaryWriter
+from device_utils import (
+    get_current_device, 
+    get_current_device_type, 
+    get_distributed_backend, 
+    get_distributed_init_method, 
+    is_bf16_supported,
+    set_manual_seed
+)
 
 try:
     import torch_xla.core.xla_model as xm
@@ -53,13 +56,11 @@ except ImportError:
     xm = None
     xr = None
 
-from device_utils import (
-    get_current_device, 
-    get_current_device_type, 
-    get_distributed_backend, 
-    get_distributed_init_method, 
-    is_bf16_supported
-)
+from checkpoint_handler import CheckpointHandler
+
+from model import GPT2TransformerBlock
+
+from torch.utils.tensorboard import SummaryWriter
 
 from logging_handler import get_logger
 logger = get_logger()
@@ -305,9 +306,9 @@ class TrainFSDP:
                 assert self.cfg.rank == xr.global_ordinal(), f"{self.cfg.rank} != {xr.global_ordinal()}"
 
         device = get_current_device()
-        logger.info(f"current device: {device}")
         bf16_supported = is_bf16_supported()
-        logger.info(f"bf16_supported: {bf16_supported}")
+        set_manual_seed(self.cfg.seed)
+
         # dataloaders
         train_dataset = GptDataset(self.cfg.train_data, 
                                    block_size=self.cfg.block_size, max_len=self.cfg.max_dataset_len)
