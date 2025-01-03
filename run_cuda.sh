@@ -3,17 +3,15 @@
 ulimit -n 65536
 NCCL_DEBUG=Info
 NCCL_SOCKET_IFNAME=lo
+GPU_NODES=1
+GPU_NUM_DEVICES=$(nvidia-smi --list-gpus | wc -l)
+
 torchrun \
---rdzv-backend=c10d \
---rdzv-endpoint=localhost:0 \
---rdzv-id=gpt2-fsdp-cuda \
---nnodes=1 \
---nproc-per-node=8 \
+--nnode=$GPU_NODES \
+--nproc-per-node=$GPU_NUM_DEVICES \
 train_fsdp.py \
---device_type='cuda' \
 --dataset_dir='data' \
 --log_dir='logs' \
 --checkpoint_dir='checkpoints' \
---mixed_precision='True' \
 --hf_model="gpt2" \
---batch_size=12
+--batch_size=8

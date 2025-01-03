@@ -1,4 +1,4 @@
-FROM us-central1-docker.pkg.dev/tpu-pytorch-releases/docker/xla:r2.2.0_3.10_cuda_12.1
+FROM us-central1-docker.pkg.dev/tpu-pytorch-releases/docker/xla:r2.5.0_3.10_cuda_12.4
 
 
 # Keeps Python from generating .pyc files in the container

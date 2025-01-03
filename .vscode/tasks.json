@@ -3,10 +3,10 @@
 	"tasks": [
 		{
 			"type": "docker-build",
-			"label": "docker-build-xla",
+			"label": "docker-build-xla-cuda",
 			"dockerBuild": {
-				"tag": "gp2-fsdp-xla:latest",
-				"dockerfile": "${workspaceFolder}/Dockerfile.xla",
+				"tag": "gp2-fsdp-xla-cuda:latest",
+				"dockerfile": "${workspaceFolder}/Dockerfile.xla.cuda",
 				"context": "${workspaceFolder}",
 				"pull": true
 			}
@@ -23,20 +23,18 @@
 		},
 		{
 			"type": "docker-run",
-			"label": "docker-run-xla: debug",
+			"label": "docker-run-xla-cuda: debug",
 			"dependsOn": [
-				"docker-build-xla"
+				"docker-build-xla-cuda"
 			],
 			"python": {
 				"file": "train_fsdp.py"
 			},
 			"dockerRun": {
-				"image": "docker.io/library/gp2-fsdp-xla:latest",
+				"image": "docker.io/library/gp2-fsdp-xla-cuda:latest",
 				"customOptions": "--gpus=all",
 				"remove": true,
-				"env": {
-					"XLA_USE_BF16": "1"
-				},
+				"env": {},
 				"volumes": [
 					{
 						"localPath": "${workspaceFolder}",

@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python: Current File CUDA",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
@@ -10,19 +10,17 @@
             "justMyCode": true,
             "args": [
                 "--dataset_dir=data",
-                "--device_type=cuda",
                 "--log_dir=logs",
-                "--batch_size=12",
+                "--batch_size=8",
                 "--checkpoint_dir=checkpoints",
                 "--hf_model=gpt2"
             ],
-            "env": {}
         },
         {
-            "name": "Docker: Python Debug XLA",
+            "name": "Docker: Python Debug XLA CUDA",
             "type": "docker",
             "request": "launch",
-            "preLaunchTask": "docker-run-xla: debug",
+            "preLaunchTask": "docker-run-xla-cuda: debug",
             "python": {
                 "pathMappings": [
                     {
@@ -34,11 +32,10 @@
                 "projectType": "general",
                 "args": [
                     "--dataset_dir=data",
-                    "--device_type=xla",
                     "--log_dir=logs",
                     "--checkpoint_dir=checkpoints",
-                    "--batch_size=8",
-                    "--cache_dir=cache",
+                    "--batch_size=4",
+                    "--cache_dir=cache/xla-cuda",
                     "--hf_model=gpt2"
                 ]
             }
@@ -59,10 +56,9 @@
                 "projectType": "general",
                 "args": [
                     "--dataset_dir=data",
-                    "--device_type=cuda",
                     "--log_dir=logs",
                     "--checkpoint_dir=checkpoints",
-                    "--batch_size=12",
+                    "--batch_size=8",
                     "--hf_model=gpt2"
                 ]
             }

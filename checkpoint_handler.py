@@ -2,6 +2,9 @@ import os
 import torch
 
 try:
+    import torch_xla.core.xla_model as xm
+    import torch_xla.runtime as xr
+    import torch_xla.distributed.xla_backend as xb
     from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP
     import torch_xla.utils.serialization as xser
 except ImportError:
@@ -11,7 +14,10 @@ except ImportError:
         ShardedStateDictConfig,
         ShardedOptimStateDictConfig
     )
+    xm = None
+    xr = None
 
+from device_utils import get_current_device_type
 from train_config import TrainConfig
 
 from logging_handler import get_logger
@@ -24,13 +30,13 @@ class CheckpointHandler:
         self.cfg = cfg
         self.__init_chkpt_path()
 
-        if self.cfg.device_type == "cuda":
+        if get_current_device_type() == "cuda":
             self.sharded_state_dict_config = ShardedStateDictConfig(offload_to_cpu=True)
             self.sharded_optim_state_dict_config = ShardedOptimStateDictConfig(offload_to_cpu=True)
 
     def __init_chkpt_path(self):
         self.__chkpt_path = os.path.join(self.cfg.checkpoint_dir,
-                                         self.cfg.device_type,
+                                         get_current_device_type(),
                                          f"rank_{self.cfg.rank}-world_{self.cfg.world_size}.pt" )
 
         logger.info(f"Checkpoint path: {self.__chkpt_path}")               
@@ -109,7 +115,7 @@ class CheckpointHandler:
 
     def save(self, model, optimizer, epoch):
         if self.cfg.fsdp:
-            if self.cfg.device_type == "xla":
+            if xm:
                 self.__save_fsdp_xla_checkpoint(model, optimizer, epoch)
             else:
                 self.__save_fsdp_checkpoint(model, optimizer, epoch)
@@ -122,7 +128,7 @@ class CheckpointHandler:
             return 1
         
         if self.cfg.fsdp:
-            if self.cfg.device_type == "xla":
+            if xm:
                 return self.__load_fsdp_xla_checkpoint(model, optimizer)
             else:
                 return self.__load_fsdp_checkpoint(model, optimizer)

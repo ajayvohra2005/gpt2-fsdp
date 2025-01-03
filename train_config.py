@@ -50,7 +50,6 @@ class TrainConfig:
     best_val_loss:float = 1e9
 
     run_validation:bool = True
-    device_type:str = "cuda" # "xla", "cpu",
     
     rank:int = 0
     local_rank:int = 0
@@ -61,7 +60,7 @@ class TrainConfig:
 
     activation_checkpoint: bool = False
 
-    mixed_precision: bool=True
+    mixed_precision: bool=False
     use_fp16: bool=False
     limit_all_gathers: bool=True
     sharding_strategy: ShardingStrategy = ShardingStrategy.FULL_SHARD
@@ -70,12 +69,11 @@ class TrainConfig:
     checkpoint_dir: str = "checkpoints"
     save_ckpt:bool = True
     step_lr_gamma: float = 1e-1
-    cache_dir: str = "cache"
+    cache_dir: str = os.getenv("XLA_CACHE_DIR", "cache")
 
     def __post_init__(self):
         assert self.batch_size > 0
         assert self.dropout >= 0.0 and self.dropout < 1.0
-        assert self.device_type in [ "cuda", "xla", "cpu"]
         assert self.hf_model is None or \
             self.hf_model in {'gpt2', 'gpt2-medium', 'gpt2-large', 'gpt2-xl'}
 
@@ -100,7 +98,6 @@ class TrainConfig:
         self.optimizer_name = "adamw"
 
         self.log_dir = os.path.join(self.log_dir, self.model_name)
-        self.cache_dir = os.path.join(self.cache_dir, self.model_name)
         self.checkpoint_dir = os.path.join(self.checkpoint_dir, self.model_name)
         
         # attempt to derive vocab_size from the dataset
@@ -112,6 +109,4 @@ class TrainConfig:
             logger.info(f"found vocab_size = {self.vocab_size} (inside {meta_path})")
 
         os.makedirs(self.log_dir, exist_ok=True)
-
-        if self.device_type == "xla":
-            os.makedirs(self.cache_dir, exist_ok=True)
+        

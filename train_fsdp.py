@@ -39,17 +39,27 @@ from checkpoint_handler import CheckpointHandler
 
 from model import GPT2TransformerBlock
 
+from torch.utils.tensorboard import SummaryWriter
+
 try:
     import torch_xla.core.xla_model as xm
-    import torch_xla.distributed.xla_backend
     import torch_xla.runtime as xr
+    import torch_xla.distributed.xla_backend as xb
     from torch_xla.distributed.fsdp import XlaFullyShardedDataParallel as FSDP
     from torch_xla.distributed.fsdp import checkpoint_module
 except ImportError:
     from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
     from activation_checkpoint_handler import checkpoint_activation
+    xm = None
+    xr = None
 
-from torch.utils.tensorboard import SummaryWriter
+from device_utils import (
+    get_current_device, 
+    get_current_device_type, 
+    get_distributed_backend, 
+    get_distributed_init_method, 
+    is_bf16_supported
+)
 
 from logging_handler import get_logger
 logger = get_logger()
@@ -85,13 +95,14 @@ class TrainFSDP:
         self.cfg = cfg
         self.__ckpt_handler = CheckpointHandler(cfg)
         if self.cfg.rank == 0:
-            self.__summary_writer = SummaryWriter(log_dir=os.path.join(cfg.log_dir, cfg.device_type))
+            self.__summary_writer = SummaryWriter(log_dir=os.path.join(cfg.log_dir, get_current_device_type()))
 
-        if self.cfg.device_type == "xla":
+        if xm:
             compiler_cache_path = self.cfg.cache_dir
             os.makedirs(compiler_cache_path, exist_ok=True)
             try:
                 xr.initialize_cache(compiler_cache_path, readonly=False)
+                logger.info(f"compiler cache path: {compiler_cache_path}")
             except AttributeError as e:
                 logger.warning(str(e))
 
@@ -163,10 +174,7 @@ class TrainFSDP:
             iters += 1
 
         if self.cfg.fsdp:
-            if self.cfg.device_type == "xla":
-                xm.all_reduce(xm.REDUCE_SUM, fsdp_loss)
-            else:
-                dist.all_reduce(fsdp_loss, op=dist.ReduceOp.SUM)
+            dist.all_reduce(fsdp_loss, op=dist.ReduceOp.SUM)
 
         train_loss = fsdp_loss[0] / fsdp_loss[1]
 
@@ -195,14 +203,11 @@ class TrainFSDP:
                 if self.cfg.rank==0:
                     inner_pbar.update(1)
 
-                if self.cfg.device_type == "xla":
+                if xm:
                     xm.mark_step()
 
         if self.cfg.fsdp:
-            if self.cfg.device_type == "xla":
-                xm.all_reduce(xm.REDUCE_SUM, fsdp_loss)
-            else:
-                dist.all_reduce(fsdp_loss, op=dist.ReduceOp.SUM)
+            dist.all_reduce(fsdp_loss, op=dist.ReduceOp.SUM)
 
         val_loss = fsdp_loss[0] / fsdp_loss[1]
         if self.cfg.rank == 0:
@@ -232,7 +237,7 @@ class TrainFSDP:
                 self.__get_policies(wrap_cls, bf16_supported=bf16_supported)
             
             # Apply FSDP wrapping to the model
-            if self.cfg.device_type == "xla":
+            if xm:
                 compute_dtype= torch.bfloat16 \
                     if self.cfg.mixed_precision and bf16_supported else torch.float32 
                 fp32_reduce_scatter = True \
@@ -279,43 +284,34 @@ class TrainFSDP:
             
         return model, optimizer, epoch
 
-    def __get_device(self):
-        
-        if self.cfg.device_type == 'xla':
-            device = xm.xla_device()
-            bf16_supported = bool(int(os.getenv('XLA_USE_BF16', 0)))
+    def __init_distributed(self, world_size: int, rank: int):
 
-            self.cfg.rank = xm.get_ordinal()
-            self.cfg.world_size = xm.xrt_world_size()
+        if not dist.is_initialized():
+            init_method = get_distributed_init_method()
+            backend = get_distributed_backend()  
 
-            logger.info(f"XLA rank: {self.cfg.rank}, world_size: {self.cfg.world_size}, device: {device}")
-            
-        elif self.cfg.device_type == 'cuda':
-            device = torch.device(f"cuda:{self.cfg.local_rank}")
-            logger.info(f"CUDA rank: {self.cfg.rank}, world_size: {self.cfg.world_size}, device: {device}")
-
-            bf16_supported = torch.cuda.is_bf16_supported()
-            torch.cuda.set_device(device)
-            torch.backends.cuda.matmul.allow_tf32 = True # allow tf32 on matmul
-            torch.backends.cudnn.allow_tf32 = True # allow tf32 on cudnn
-        else:
-            device = torch.device("cpu")
-            bf16_supported = False
-
-        return device, bf16_supported
-
+            logger.info(f"init_process_group using init_method: {init_method}, backend: {backend}")
+            dist.init_process_group(backend=backend, 
+                                        world_size=world_size, 
+                                        rank=rank, 
+                                        init_method=init_method)
     def __call__(self):
 
         if self.cfg.fsdp:
-            if self.cfg.device_type == "xla":
-                logger.info(f"init process group using init method xla://")
-                dist.init_process_group('xla', init_method='xla://')
-            else:
-                logger.info(f"init process group using backend: '{self.cfg.dist_backend}'")
-                dist.init_process_group(self.cfg.dist_backend)
+            world_size = int(os.getenv("WORLD_SIZE", 1))
+            rank = int(os.getenv("RANK", 0))
+            self.__init_distributed(world_size, rank)
+            self.cfg.world_size = world_size
+            self.cfg.rank = rank
 
-        device, bf16_supported = self.__get_device()
+            if xr:
+                assert world_size == xr.world_size(), f"{world_size} != {xr.world_size()} "
+                assert rank == xr.global_ordinal(), f"{rank} != {xr.global_ordinal()}"
 
+        device = get_current_device()
+        logger.info(f"current device: {device}")
+        bf16_supported = is_bf16_supported()
+        logger.info(f"bf16_supported: {bf16_supported}")
         # dataloaders
         train_dataset = GptDataset(self.cfg.train_data, 
                                    block_size=self.cfg.block_size, max_len=self.cfg.max_dataset_len)

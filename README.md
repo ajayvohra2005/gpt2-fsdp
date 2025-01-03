@@ -44,23 +44,19 @@ Launch pre-installed Visual Studio Code and open this repository in Code. Instal
 There are three options for debugging the current file `train_fsdp.py` in Code:
 
 1. To debug with CUDA running on the desktop use `Python: CurrentFile` debugger configuration in Code
-2. To debug in a docker container running CUDA, use `Docker: Python Debug CUDA` debugger configuration. For this option, first run following command in a Code Terminal:
-
-    `aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 763104351884.dkr.ecr.us-west-2.amazonaws.com`
+2. To debug in a docker container running CUDA, use `Docker: Python Debug CUDA` 
 
 3. To debug in a docker container running XLA on top of CUDA, use `Docker: Python Debug XLA` debugger configuration 
 
-### Distributed FSDP Training using CUDA on Desktop
+### Distributed FSDP Training using CUDA in Docker Container
 
-To run distributed FSDP training on CUDA on the desktop, execute:
+First, build the Docker image using following command:
 
-    ./run_cuda.sh 1>run_cuda.out 2>&1 &
+    docker buildx build -t gp2-fsdp-cuda:latest -f Dockerfile.cuda .
 
-### Distributed FSDP Training using XLA/CUDA in Docker Container
+Next, start the docker container for running distributed training on XLA running on top of CUDA:
 
-First  use `Docker: Python Debug XLA` debugger configuration in Code: This will build the `gp2-fsdp-xla:latest` Docker image locally on the desktop. Next, start the docker container for running distributed training on XLA running on top of CUDA:
-
-    docker run -t -d -v /home/ubuntu/gpt2-fsdp:/app --shm-size=16g --net=host --gpus all docker.io/library/gp2-fsdp-xla:latest  sleep infinity
+    docker run -t -d -v /home/ubuntu/gpt2-fsdp:/app --shm-size=16g --net=host --gpus all docker.io/library/gp2-fsdp-cuda:latest  sleep infinity
 
 Next `exec` into the running Docker container using the docker container short id:
 
@@ -68,7 +64,27 @@ Next `exec` into the running Docker container using the docker container short i
 
 Next, launch distributed training within the docker container:
 
-    ./run_xla.sh 1>run_xla.out 2>&1 &
+    ./run_cuda.sh 1>run_cuda.out 2>&1 &
+
+**Note:** In this case we are mounting the cloned repository on the `/app` directory of the Docker container.
+
+### Distributed FSDP Training using XLA/CUDA in Docker Container
+
+First, build the Docker image using following command:
+
+    docker buildx build -t gp2-fsdp-xla-cuda:latest -f Dockerfile.xla.cuda .
+
+Next, start the docker container for running distributed training on XLA running on top of CUDA:
+
+    docker run -t -d -v /home/ubuntu/gpt2-fsdp:/app --shm-size=16g --net=host --gpus all docker.io/library/gp2-fsdp-xla-cuda:latest  sleep infinity
+
+Next `exec` into the running Docker container using the docker container short id:
+
+    docker exec -it CONTAINER_ID /bin/bash
+
+Next, launch distributed training within the docker container:
+
+    ./run_xla_cuda.sh 1>run_xla_cuda.out 2>&1 &
 
 **Note:** In this case we are mounting the cloned repository on the `/app` directory of the Docker container. 
 
