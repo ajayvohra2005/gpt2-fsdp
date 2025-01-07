@@ -1,7 +1,11 @@
 #!/bin/bash
 
+mkdir -p /home/ubuntu/cache
+mkdir -p /home/ubuntu/tmp
+
 docker run -t -d -v /home/ubuntu/gpt2-fsdp:/app \
-    -v /tmp:/cache \
+    -v /home/ubuntu/cache:/cache \
+    -v /home/ubuntu/tmp:/tmp \
     --shm-size=16g --net=host \
     --device=/dev/neuron0 \
     --device=/dev/neuron1 \
